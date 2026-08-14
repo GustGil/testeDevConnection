@@ -1,0 +1,51 @@
+FROM php:8.5-fpm
+
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    curl \
+    nginx \
+    supervisor \
+    nodejs \
+    npm \
+    libpq-dev \
+    libzip-dev \
+    && docker-php-ext-install \
+    pdo_pgsql \
+    pgsql \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www
+
+# Copia tudo de uma vez (imagem de produção não usa bind mount)
+COPY . .
+
+RUN composer install \
+    --optimize-autoloader \
+    --no-interaction \
+    --no-dev
+
+RUN npm install && npm run build
+
+RUN cp .env.example .env
+
+RUN php artisan wayfinder:generate --with-form
+
+RUN chown -R www-data:www-data storage bootstrap/cache
+
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 9000/' \
+    /usr/local/etc/php-fpm.d/www.conf
+
+# Configs do nginx e supervisord
+COPY docker/nginx/prod.conf /etc/nginx/sites-available/default
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+RUN rm -f /etc/nginx/sites-enabled/default \
+    && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+
+EXPOSE 10000
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
