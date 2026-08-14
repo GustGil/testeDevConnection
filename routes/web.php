@@ -7,10 +7,12 @@
     use App\Http\Controllers\ReportController;
 
 
-    Route::inertia('/', 'welcome')->name('home');
-
+    
 
     Route::middleware(['auth'])->group(function () {
+        Route::inertia('/', 'welcome')->name('home');
+
+
             Route::get('/contacts/create', [ContactController::class, 'create'])
             ->name('contacts.create');
 
