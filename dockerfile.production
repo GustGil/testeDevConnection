@@ -48,4 +48,7 @@ RUN rm -f /etc/nginx/sites-enabled/default \
 
 EXPOSE 10000
 
+COPY docker/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
 CMD ["/usr/local/bin/start.sh"]
